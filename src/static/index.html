@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vectorless RAG Lecture Navigator | Topic-Tree LLM Reasoning</title>
+  <meta name="description" content="Vectorless RAG lecture navigation using hierarchical topic-tree LLM reasoning instead of chunk-and-embed vector search.">
+  
+  <!-- Modern Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- Background Decorative Mesh Gradients -->
+  <div class="glow-sphere sphere-1"></div>
+  <div class="glow-sphere sphere-2"></div>
+
+  <div class="app-container">
+    <!-- Header Navbar -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <i class="fa-solid fa-sitemap"></i>
+        </div>
+        <div>
+          <h1>Vectorless RAG <span>Lecture Navigator</span></h1>
+          <p class="tagline">Hierarchical Topic-Tree LLM Reasoning • No Embeddings • No Vector DB</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-purple"><i class="fa-solid fa-bolt"></i> 2-Step LLM Pipeline</span>
+        <span class="badge badge-outline"><i class="fa-solid fa-code-branch"></i> PageIndex Architecture</span>
+      </div>
+    </header>
+
+    <!-- Ingested Lectures & History Drawer -->
+    <section class="samples-section">
+      <div class="section-title-bar">
+        <div class="section-title">
+          <i class="fa-solid fa-layer-group"></i>
+          <h3>Ingested Lectures Library & History</h3>
+          <span class="subtitle">(Click a lecture to switch video, load topic tree & chat history)</span>
+        </div>
+        <div id="libraryStats" class="badge badge-purple">0 Lectures Ingested</div>
+      </div>
+      <div class="samples-grid" id="samplesGrid">
+        <div class="empty-library">
+          <i class="fa-solid fa-film"></i>
+          <p>No ingested lectures yet. Paste a YouTube URL below to process your first video!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ingestion URL Bar -->
+    <section class="url-card">
+      <form id="ingestForm" class="url-form">
+        <div class="input-wrapper">
+          <i class="fa-brand fa-youtube youtube-icon"></i>
+          <input 
+            type="text" 
+            id="urlInput" 
+            placeholder="Paste YouTube Lecture URL(s) - single or multiple comma-separated links..." 
+            required
+          />
+        </div>
+        <button type="submit" id="ingestBtn" class="btn btn-primary">
+          <i class="fa-solid fa-microchip"></i>
+          <span>Process & Build Tree</span>
+        </button>
+      </form>
+
+      <!-- Ingestion Status Progress Visualizer -->
+      <div id="ingestStatus" class="status-card hidden">
+        <div class="status-header">
+          <span id="statusText">Ingesting YouTube Transcript...</span>
+          <div class="spinner"></div>
+        </div>
+        <div class="progress-bar-container">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Split View -->
+    <main class="workspace-grid">
+      <!-- Left Panel: YouTube Player + Topic Tree Navigator -->
+      <div class="left-panel">
+        <!-- Embedded Player Container -->
+        <div class="video-container">
+          <div id="youtubePlayer"></div>
+          <div id="playerPlaceholder" class="player-placeholder">
+            <i class="fa-brands fa-youtube"></i>
+            <p>Select an ingested lecture above or paste a YouTube URL to start</p>
+          </div>
+        </div>
+
+        <!-- Topic Tree Visualizer -->
+        <div class="card tree-card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-folder-tree"></i> Hierarchical Topic Tree</h3>
+            <span id="treeStats" class="badge badge-dark">0 Sections</span>
+          </div>
+          <div id="treeContainer" class="tree-content">
+            <div class="empty-tree-state">
+              <i class="fa-solid fa-diagram-project"></i>
+              <p>Topic hierarchy will appear here once a video is loaded.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Q&A Interface -->
+      <div class="right-panel">
+        <div class="card chat-card">
+          <div class="card-header">
+            <div class="chat-header-title">
+              <h3><i class="fa-solid fa-comments"></i> Vectorless Q&A Assistant</h3>
+            </div>
+            
+            <!-- Mode Switcher & Controls -->
+            <div class="chat-header-actions">
+              <div class="mode-toggle-group">
+                <button type="button" class="mode-btn active" id="modeSingleBtn" onclick="setQueryMode('single')">
+                  <i class="fa-solid fa-video"></i> Active Video
+                </button>
+                <button type="button" class="mode-btn" id="modeMultiBtn" onclick="setQueryMode('multi')">
+                  <i class="fa-solid fa-layer-group"></i> All Lectures
+                </button>
+              </div>
+              <button class="icon-btn" onclick="clearChatHistoryUI()" title="Clear Chat History">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Suggested Questions Bar -->
+          <div class="suggestions-container" id="suggestionsContainer">
+            <span class="suggestions-label">Try asking:</span>
+            <div class="suggestions-pills" id="suggestionsPills">
+              <!-- Injected via app.js -->
+            </div>
+          </div>
+
+          <!-- Chat History Container -->
+          <div class="chat-history" id="chatHistory">
+            <div class="welcome-chat">
+              <div class="ai-avatar"><i class="fa-solid fa-brain"></i></div>
+              <div class="welcome-body">
+                <h4>Welcome to Vectorless RAG Navigation</h4>
+                <p>Instead of chunking text and performing cosine vector search, this system uses <strong>LLM reasoning over a 2-level summary tree</strong> to locate relevant lecture branches before synthesizing answers with clickable timestamps.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input Form -->
+          <form id="queryForm" class="chat-input-form">
+            <input 
+              type="text" 
+              id="queryInput" 
+              placeholder="Ask anything about the lecture's content..." 
+              autocomplete="off" 
+              required
+            />
+            <button type="submit" id="queryBtn" class="btn btn-accent">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
